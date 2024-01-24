@@ -2002,7 +2002,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84dc46044e2274181a4d4a1b2d14daae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _navAgent: {fileID: 0}
+  _state: 0
+  _treeStatus: 1
   _diamond: {fileID: 1550492363}
+  _painting: {fileID: 1904932022}
   _van: {fileID: 1207566414}
   _backdoor: {fileID: 919599686}
   _frontdoor: {fileID: 1791870521}

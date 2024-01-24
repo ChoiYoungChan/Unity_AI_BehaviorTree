@@ -10,12 +10,19 @@ public class Node
 
     public int _currentChild = 0;
     public string _name;
+    public int _priority;
 
     public Node() { }
 
     public Node(string name)
     {
         this._name = name;
+    }
+
+    public Node(string name, int priority)
+    {
+        this._name = name;
+        _priority = priority;
     }
 
     public virtual Status Process()

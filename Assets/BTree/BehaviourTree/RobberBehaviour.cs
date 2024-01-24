@@ -3,69 +3,83 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class RobberBehaviour : MonoBehaviour
+public class RobberBehaviour : BTAgent
 {
     #region private
-    BehaviourTree _tree;
-
     [SerializeField] GameObject _diamond;
+    [SerializeField] GameObject _painting;
     [SerializeField] GameObject _van;
     [SerializeField] GameObject _backdoor;
     [SerializeField] GameObject _frontdoor;
-    NavMeshAgent _navAgent;
-
+    GameObject _pickUp;
     #endregion
 
     #region public
-    enum ActionState { IDLE, WORKING };
-    ActionState _state = ActionState.IDLE;
-    Node.Status _treeStatus = Node.Status.RUNNING;
-
     [Range(0, 1000)]
     public int _money = 100;
 
     #endregion
 
     // Start is called before the first frame update
-    void Start()
+    new void Start()
     {
-        _navAgent = this.GetComponent<NavMeshAgent>();
+        base.Start();
 
-        _tree = new BehaviourTree();
         Sequence steal = new Sequence("Steal Something");
         Leaf goToBackDoor = new Leaf("Go To BackDoor", GoToBackDoor);
         Leaf goToFrontDoor = new Leaf("Go To FrontDoor", GoToFrontDoor);
-        Leaf goToDiamond = new Leaf("Go To Diamond", GoToDiamond);
+        Leaf goToDiamond = new Leaf("Go To Diamond", GoToDiamond, 2);
+        Leaf goToPainting = new Leaf("Go To Painting", GoToPainting, 1);
         Leaf hasGotMoney = new Leaf("Has Got Money", HasMoney);
         Leaf goToVan = new Leaf("Go To Van", GoToVan);
-
         Selector opdnDoor = new Selector("Open Door");
+        PSelector selectObject = new PSelector("Select Object To Steal");
+
+        Inverter invertMoney = new Inverter("Invert Money");
+        invertMoney.AddChild(hasGotMoney);
 
         opdnDoor.AddChild(goToFrontDoor);
         opdnDoor.AddChild(goToBackDoor);
 
-        steal.AddChild(hasGotMoney);
+        steal.AddChild(invertMoney);
         steal.AddChild(opdnDoor);
-        steal.AddChild(goToDiamond);
-        //steal.AddChild(goToFrontDoor);
+
+        selectObject.AddChild(goToDiamond);
+        selectObject.AddChild(goToPainting);
+        steal.AddChild(selectObject);
+
         steal.AddChild(goToVan);
         _tree.AddChild(steal);
     }
 
     public Node.Status GoToDiamond()
     {
+        if (!_diamond.activeSelf) return Node.Status.FAILURE;
         Node.Status status = GoToLocation(_diamond.transform.position);
         if (status == Node.Status.SUCCESS)
         {
             _diamond.transform.parent = this.gameObject.transform;
+            _pickUp = _diamond;
         }
         return status;
         //return GoToLocation(_diamond.transform.position);
     }
 
+    public Node.Status GoToPainting()
+    {
+        if (!_painting.activeSelf) return Node.Status.FAILURE;
+        Node.Status status = GoToLocation(_painting.transform.position);
+        if (status == Node.Status.SUCCESS)
+        {
+            _painting.transform.parent = this.gameObject.transform;
+            _pickUp = _painting;
+        }
+        return status;
+    }
+
     public Node.Status HasMoney()
     {
-        if (_money >= 500)
+        if (_money < 500)
             return Node.Status.FAILURE;
         return Node.Status.SUCCESS;
     }
@@ -85,8 +99,8 @@ public class RobberBehaviour : MonoBehaviour
         Node.Status status = GoToLocation(_van.transform.position);
         if (status == Node.Status.SUCCESS)
         {
-            _money += 500;
-            _diamond.SetActive(false);
+            _money += 300;
+            _pickUp.SetActive(false);
         }
         return status;
         //return GoToLocation(_van.transform.position);
@@ -99,7 +113,7 @@ public class RobberBehaviour : MonoBehaviour
         {
             if (!door.GetComponent<Lock>()._isLocked)
             {
-                door.SetActive(false);
+                door.GetComponent<NavMeshObstacle>().enabled = false;
                 return Node.Status.SUCCESS;
             }
             return Node.Status.FAILURE;
@@ -123,12 +137,5 @@ public class RobberBehaviour : MonoBehaviour
             return Node.Status.SUCCESS;
         }
         return Node.Status.RUNNING;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if(_treeStatus != Node.Status.SUCCESS)
-            _treeStatus = _tree.Process();
     }
 }
