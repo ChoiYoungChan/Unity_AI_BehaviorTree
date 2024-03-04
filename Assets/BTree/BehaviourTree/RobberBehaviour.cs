@@ -11,12 +11,16 @@ public class RobberBehaviour : BTAgent
     [SerializeField] GameObject _van;
     [SerializeField] GameObject _backdoor;
     [SerializeField] GameObject _frontdoor;
+    [SerializeField] GameObject[] _art;
     GameObject _pickUp;
     #endregion
 
     #region public
     [Range(0, 1000)]
     public int _money = 100;
+
+    Leaf goToBackDoor;
+    Leaf goToFrontDoor;
 
     #endregion
 
@@ -26,14 +30,20 @@ public class RobberBehaviour : BTAgent
         base.Start();
 
         Sequence steal = new Sequence("Steal Something");
-        Leaf goToBackDoor = new Leaf("Go To BackDoor", GoToBackDoor);
-        Leaf goToFrontDoor = new Leaf("Go To FrontDoor", GoToFrontDoor);
         Leaf goToDiamond = new Leaf("Go To Diamond", GoToDiamond, 2);
         Leaf goToPainting = new Leaf("Go To Painting", GoToPainting, 1);
         Leaf hasGotMoney = new Leaf("Has Got Money", HasMoney);
+
+        Leaf goToAr1 = new Leaf("Go To Art 1", GoToArt1);
+        Leaf goToAr2 = new Leaf("Go To Art 2", GoToArt2);
+        Leaf goToAr3 = new Leaf("Go To Art 3", GoToArt3);
+
+        goToBackDoor = new Leaf("Go To BackDoor", GoToBackDoor, 2);
+        goToFrontDoor = new Leaf("Go To FrontDoor", GoToFrontDoor, 1);
         Leaf goToVan = new Leaf("Go To Van", GoToVan);
-        Selector opdnDoor = new Selector("Open Door");
+        PSelector opdnDoor = new PSelector("Open Door");
         PSelector selectObject = new PSelector("Select Object To Steal");
+        RamdomSelector rselectObject = new RamdomSelector("Select Object To Steal");
 
         Inverter invertMoney = new Inverter("Invert Money");
         invertMoney.AddChild(hasGotMoney);
@@ -46,7 +56,12 @@ public class RobberBehaviour : BTAgent
 
         selectObject.AddChild(goToDiamond);
         selectObject.AddChild(goToPainting);
-        steal.AddChild(selectObject);
+
+        rselectObject.AddChild(goToAr1);
+        rselectObject.AddChild(goToAr2);
+        rselectObject.AddChild(goToAr3);
+
+        steal.AddChild(rselectObject);
 
         steal.AddChild(goToVan);
         _tree.AddChild(steal);
@@ -77,6 +92,45 @@ public class RobberBehaviour : BTAgent
         return status;
     }
 
+    public Node.Status GoToArt1()
+    {
+        if (!_art[1].activeSelf) return Node.Status.FAILURE;
+        Node.Status status = GoToLocation(_art[1].transform.position);
+        if (status == Node.Status.SUCCESS)
+        {
+            _art[1].transform.parent = this.gameObject.transform;
+            _pickUp = _art[1];
+        }
+        return status;
+        //return GoToLocation(_diamond.transform.position);
+    }
+
+    public Node.Status GoToArt2()
+    {
+        if (!_art[2].activeSelf) return Node.Status.FAILURE;
+        Node.Status status = GoToLocation(_art[2].transform.position);
+        if (status == Node.Status.SUCCESS)
+        {
+            _art[2].transform.parent = this.gameObject.transform;
+            _pickUp = _art[2];
+        }
+        return status;
+        //return GoToLocation(_diamond.transform.position);
+    }
+
+    public Node.Status GoToArt3()
+    {
+        if (!_art[0].activeSelf) return Node.Status.FAILURE;
+        Node.Status status = GoToLocation(_art[0].transform.position);
+        if (status == Node.Status.SUCCESS)
+        {
+            _art[0].transform.parent = this.gameObject.transform;
+            _pickUp = _diamond;
+        }
+        return status;
+        //return GoToLocation(_diamond.transform.position);
+    }
+
     public Node.Status HasMoney()
     {
         if (_money < 500)
@@ -86,12 +140,22 @@ public class RobberBehaviour : BTAgent
 
     public Node.Status GoToBackDoor()
     {
-        return GoToDoor(_backdoor);
+        Node.Status s = GoToDoor(_backdoor);
+        if (s == Node.Status.FAILURE)
+            goToBackDoor._priority = 10;
+        else
+            goToBackDoor._priority = 1;
+        return s;
     }
 
     public Node.Status GoToFrontDoor()
     {
-        return GoToDoor(_frontdoor);
+        Node.Status s = GoToDoor(_frontdoor);
+        if (s == Node.Status.FAILURE)
+            goToFrontDoor._priority = 10;
+        else
+            goToFrontDoor._priority = 1;
+        return s;
     }
 
     public Node.Status GoToVan()

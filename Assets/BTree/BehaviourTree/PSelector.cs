@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class PSelector : Node
 {
+    bool _isOdernode = false;
     Node[] _nodeArray;
     public PSelector(string name)
     {
@@ -19,19 +20,27 @@ public class PSelector : Node
 
     public override Status Process()
     {
-        OrderNode();
+        if(!_isOdernode)
+        {
+            OrderNode();
+            _isOdernode = true;
+        }
 
         Status childstatus = children[_currentChild].Process();
         if (childstatus == Status.RUNNING) return Status.RUNNING;
         if (childstatus == Status.SUCCESS)
         {
             _currentChild = 0;
+            _isOdernode = false;
             return Status.SUCCESS;
         }
+
+
         _currentChild++;
         if(_currentChild >= children.Count)
         {
             _currentChild = 0;
+            _isOdernode = false;
             return Status.FAILURE;
         }
         return Status.RUNNING;
