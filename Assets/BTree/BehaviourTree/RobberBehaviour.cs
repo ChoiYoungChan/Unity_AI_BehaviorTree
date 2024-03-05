@@ -7,6 +7,7 @@ public class RobberBehaviour : BTAgent
 {
     #region private
     [SerializeField] GameObject _diamond;
+    [SerializeField] GameObject _cop;
     [SerializeField] GameObject _painting;
     [SerializeField] GameObject _van;
     [SerializeField] GameObject _backdoor;
@@ -29,7 +30,6 @@ public class RobberBehaviour : BTAgent
     {
         base.Start();
 
-        Sequence steal = new Sequence("Steal Something");
         Leaf goToDiamond = new Leaf("Go To Diamond", GoToDiamond, 2);
         Leaf goToPainting = new Leaf("Go To Painting", GoToPainting, 1);
         Leaf hasGotMoney = new Leaf("Has Got Money", HasMoney);
@@ -44,27 +44,65 @@ public class RobberBehaviour : BTAgent
         PSelector opdnDoor = new PSelector("Open Door");
         PSelector selectObject = new PSelector("Select Object To Steal");
         RamdomSelector rselectObject = new RamdomSelector("Select Object To Steal");
+        for(int count = 0; count < _art.Length; count++)
+        {
+            Leaf getart = new Leaf("Go To " + _art[count].name, count, GoToArt);
+            rselectObject.AddChild(getart);
+        }
+        Sequence runAway = new Sequence("Run Away");
+        Leaf canSee = new Leaf("Can See Cop", CanSeeCop);
+        Leaf flee = new Leaf("Flee from Cop", FleeFromCop);
 
         Inverter invertMoney = new Inverter("Invert Money");
         invertMoney.AddChild(hasGotMoney);
 
+        Inverter cantseeCop = new Inverter("Can't See Cop");
+        cantseeCop.AddChild(canSee);
+
         opdnDoor.AddChild(goToFrontDoor);
         opdnDoor.AddChild(goToBackDoor);
 
-        steal.AddChild(invertMoney);
-        steal.AddChild(opdnDoor);
+        
 
         selectObject.AddChild(goToDiamond);
         selectObject.AddChild(goToPainting);
 
-        rselectObject.AddChild(goToAr1);
-        rselectObject.AddChild(goToAr2);
-        rselectObject.AddChild(goToAr3);
+        Sequence seq01 = new Sequence("New Sequence");
+        seq01.AddChild(invertMoney);
+        Sequence seq02 = new Sequence("New Sequence");
+        seq02.AddChild(cantseeCop);
+        seq02.AddChild(opdnDoor);
+        Sequence seq03 = new Sequence("New Sequence");
+        seq03.AddChild(cantseeCop);
+        seq03.AddChild(selectObject);
+        Sequence seq04 = new Sequence("New Sequence");
+        seq04.AddChild(cantseeCop);
+        seq04.AddChild(goToVan);
 
-        steal.AddChild(rselectObject);
+        /*steal.AddChild(seq01);
+        steal.AddChild(seq02);
+        steal.AddChild(seq03);
+        steal.AddChild(seq04);*/
+        BehaviourTree seeCop = new BehaviourTree();
+        seeCop.AddChild(cantseeCop);
 
+        DepSequence steal = new DepSequence("Steal Something", seeCop, _navAgent);
+        steal.AddChild(invertMoney);
+        steal.AddChild(opdnDoor);
+        steal.AddChild(cantseeCop);
         steal.AddChild(goToVan);
-        _tree.AddChild(steal);
+
+        runAway.AddChild(canSee);
+        runAway.AddChild(flee);
+
+
+        Selector beThief = new Selector("Be a thief");
+        beThief.AddChild(steal);
+        beThief.AddChild(runAway);
+
+        _tree.AddChild(beThief);
+
+        _tree.PrintTree();
     }
 
     public Node.Status GoToDiamond()
@@ -90,6 +128,19 @@ public class RobberBehaviour : BTAgent
             _pickUp = _painting;
         }
         return status;
+    }
+
+    public Node.Status GoToArt(int index)
+    {
+        if (!_art[index].activeSelf) return Node.Status.FAILURE;
+        Node.Status status = GoToLocation(_art[index].transform.position);
+        if (status == Node.Status.SUCCESS)
+        {
+            _art[index].transform.parent = this.gameObject.transform;
+            _pickUp = _art[index];
+        }
+        return status;
+        //return GoToLocation(_diamond.transform.position);
     }
 
     public Node.Status GoToArt1()
@@ -129,6 +180,16 @@ public class RobberBehaviour : BTAgent
         }
         return status;
         //return GoToLocation(_diamond.transform.position);
+    }
+
+    public Node.Status CanSeeCop()
+    {
+        return CanSee(_cop.transform.position, "Cop", 10, 90);
+    }
+
+    public Node.Status FleeFromCop()
+    {
+        return Flee(_cop.transform.position, 10);
     }
 
     public Node.Status HasMoney()

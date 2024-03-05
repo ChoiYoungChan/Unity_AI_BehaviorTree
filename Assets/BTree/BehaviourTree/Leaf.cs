@@ -7,12 +7,24 @@ public class Leaf : Node
     public delegate Status Tick();
     public Tick ProcessMethod;
 
+    public delegate Status MultiTick(int val);
+    public MultiTick MultiProcessMethod;
+
+    public int index;
+
     public Leaf() { }
 
     public Leaf(string name, Tick processMethod)
     {
         _name = name;
         ProcessMethod = processMethod;
+    }
+
+    public Leaf(string name, int number, MultiTick processMethod)
+    {
+        _name = name;
+        MultiProcessMethod = processMethod;
+        index = number;
     }
 
     public Leaf(string name, Tick processMethod, int priority)
@@ -26,6 +38,8 @@ public class Leaf : Node
     {
         if(ProcessMethod != null)
             return ProcessMethod();
+        else if (MultiProcessMethod != null)
+            return MultiProcessMethod(index);
 
         return Status.FAILURE;
     }

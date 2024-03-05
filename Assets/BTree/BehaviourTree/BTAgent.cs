@@ -11,6 +11,7 @@ public class BTAgent : MonoBehaviour
     public ActionState _state = ActionState.IDLE;
     public Node.Status _treeStatus = Node.Status.RUNNING;
     WaitForSeconds _waitForSeconds;
+    Vector3 _savedLocation;
 
     // Start is called before the first frame update
     public void Start()
@@ -21,11 +22,31 @@ public class BTAgent : MonoBehaviour
         StartCoroutine("Behave");
     }
 
+    public Node.Status CanSee(Vector3 target, string tag, float distance, float sightangle)
+    {
+        Vector3 direction = target - this.transform.position;
+        float angle = Vector3.Angle(direction, this.transform.forward);
+        if(angle < sightangle && direction.magnitude < distance)
+        {
+            RaycastHit hitInfo;
+            if(Physics.Raycast(this.transform.position, direction, out hitInfo))
+            {
+                if(hitInfo.collider.gameObject.CompareTag(tag)) return Node.Status.SUCCESS;
+            }
+        }
+        return Node.Status.FAILURE;
+    }
+
+    public Node.Status Flee(Vector3 location, float distance)
+    {
+        if (_state == ActionState.IDLE) _savedLocation = this.transform.position + (transform.position - location).normalized * distance;
+        return GoToLocation(_savedLocation);
+    }
+
     public Node.Status GoToLocation(Vector3 dest)
     {
         float destanceToTarget = Vector3.Distance(dest, this.transform.position);
-        if(_state == ActionState.IDLE)
-        {
+        if(_state == ActionState.IDLE) {
             _navAgent.SetDestination(dest);
             _state = ActionState.WORKING;
         } else if(Vector3.Distance(_navAgent.pathEndPosition, dest) >= 2) {
