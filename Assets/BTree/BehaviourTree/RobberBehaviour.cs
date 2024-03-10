@@ -62,8 +62,6 @@ public class RobberBehaviour : BTAgent
         opdnDoor.AddChild(goToFrontDoor);
         opdnDoor.AddChild(goToBackDoor);
 
-        
-
         selectObject.AddChild(goToDiamond);
         selectObject.AddChild(goToPainting);
 
@@ -83,26 +81,33 @@ public class RobberBehaviour : BTAgent
         steal.AddChild(seq02);
         steal.AddChild(seq03);
         steal.AddChild(seq04);*/
-        BehaviourTree seeCop = new BehaviourTree();
-        seeCop.AddChild(cantseeCop);
 
-        DepSequence steal = new DepSequence("Steal Something", seeCop, _navAgent);
+        BehaviourTree stealConditions = new BehaviourTree();
+        Sequence conditions = new Sequence("Stealing Conditions");
+        stealConditions.AddChild(cantseeCop);
+        stealConditions.AddChild(selectObject);
+        stealConditions.AddChild(conditions);
+        DepSequence steal = new DepSequence("Steal Something", stealConditions, _navAgent);
         steal.AddChild(invertMoney);
         steal.AddChild(opdnDoor);
         steal.AddChild(cantseeCop);
         steal.AddChild(goToVan);
+
+        Selector stealwithFallback = new Selector("Steal with fallback");
+        stealwithFallback.AddChild(steal);
+        stealwithFallback.AddChild(goToVan);
 
         runAway.AddChild(canSee);
         runAway.AddChild(flee);
 
 
         Selector beThief = new Selector("Be a thief");
-        beThief.AddChild(steal);
+        beThief.AddChild(stealwithFallback);
         beThief.AddChild(runAway);
 
         _tree.AddChild(beThief);
 
-        _tree.PrintTree();
+        //_tree.PrintTree();
     }
 
     public Node.Status GoToDiamond()
@@ -229,22 +234,6 @@ public class RobberBehaviour : BTAgent
         }
         return status;
         //return GoToLocation(_van.transform.position);
-    }
-
-    public Node.Status GoToDoor(GameObject door)
-    {
-        Node.Status status = GoToLocation(door.transform.position);
-        if (status == Node.Status.SUCCESS)
-        {
-            if (!door.GetComponent<Lock>()._isLocked)
-            {
-                door.GetComponent<NavMeshObstacle>().enabled = false;
-                return Node.Status.SUCCESS;
-            }
-            return Node.Status.FAILURE;
-        }
-        else
-            return status;
     }
 
     public Node.Status GoToLocation(Vector3 dest)

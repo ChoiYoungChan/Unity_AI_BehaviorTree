@@ -14,7 +14,7 @@ public class BTAgent : MonoBehaviour
     Vector3 _savedLocation;
 
     // Start is called before the first frame update
-    public void Start()
+    public virtual void Start()
     {
         _navAgent = this.GetComponent<NavMeshAgent>();
         _tree = new BehaviourTree();
@@ -57,6 +57,22 @@ public class BTAgent : MonoBehaviour
             return Node.Status.SUCCESS;
         }
         return Node.Status.RUNNING;
+    }
+
+    public Node.Status GoToDoor(GameObject door)
+    {
+        Node.Status status = GoToLocation(door.transform.position);
+        if (status == Node.Status.SUCCESS)
+        {
+            if (!door.GetComponent<Lock>()._isLocked)
+            {
+                door.GetComponent<NavMeshObstacle>().enabled = false;
+                return Node.Status.SUCCESS;
+            }
+            return Node.Status.FAILURE;
+        }
+        else
+            return status;
     }
 
     IEnumerator Behave()

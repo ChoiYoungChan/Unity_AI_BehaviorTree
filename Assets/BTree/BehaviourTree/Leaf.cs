@@ -36,11 +36,14 @@ public class Leaf : Node
 
     public override Status Process()
     {
+        Node.Status status;
         if(ProcessMethod != null)
-            return ProcessMethod();
+            status = ProcessMethod();
         else if (MultiProcessMethod != null)
-            return MultiProcessMethod(index);
-
-        return Status.FAILURE;
+            status = MultiProcessMethod(index);
+        else
+            status = Status.FAILURE;
+        //Debug.LogError("Name : " + _name + " Status : " + _status);
+        return status;
     }
 }
