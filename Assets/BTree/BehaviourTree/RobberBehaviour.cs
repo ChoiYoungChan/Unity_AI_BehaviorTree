@@ -90,6 +90,7 @@ public class RobberBehaviour : BTAgent
         DepSequence steal = new DepSequence("Steal Something", stealConditions, _navAgent);
         steal.AddChild(invertMoney);
         steal.AddChild(opdnDoor);
+        steal.AddChild(selectObject);
         steal.AddChild(cantseeCop);
         steal.AddChild(goToVan);
 
@@ -107,7 +108,16 @@ public class RobberBehaviour : BTAgent
 
         _tree.AddChild(beThief);
 
-        //_tree.PrintTree();
+        StartCoroutine("DecreaseMoney");
+    }
+
+    IEnumerator DecreaseMoney()
+    {
+        while (true)
+        {
+            _money = Mathf.Clamp(_money - 20, 0, 1000);
+            yield return new WaitForSeconds(Random.Range(1, 5));
+        }
     }
 
     public Node.Status GoToDiamond()

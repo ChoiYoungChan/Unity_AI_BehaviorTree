@@ -12,12 +12,14 @@ public class PatronBehaviour : BTAgent
 
     [SerializeField]
     [Range(0, 1000)]
-    private int borendom = 150;
+    private int boredom = 150;
 
     public override void Start()
     {
         base.Start();
         RamdomSelector selectObject = new RamdomSelector("Random Select Object to Steal");
+        BehaviourTree whileBored = new BehaviourTree();
+
         for(int count = 0; count < _artarray.Length; count++)
         {
             Leaf getobj = new Leaf("Go to " + _artarray[count], count, GoToArt);
@@ -30,21 +32,37 @@ public class PatronBehaviour : BTAgent
         Sequence viewArts = new Sequence("View Art");
         Selector bePatron = new Selector("Be an art Patron");
 
+        whileBored.AddChild(isBored);
+        Loop loop = new Loop("Loop Node", whileBored);
+        
+        loop.AddChild(selectObject);
+
         viewArts.AddChild(isBored);
         viewArts.AddChild(gotofrontdoor);
-        viewArts.AddChild(selectObject);
+        viewArts.AddChild(loop);
         viewArts.AddChild(gotohome);
 
         bePatron.AddChild(viewArts);
 
         _tree.AddChild(bePatron);
+
+        StartCoroutine("IncreaseBoredom");
+    }
+
+    IEnumerator IncreaseBoredom()
+    {
+        while(true)
+        {
+            boredom = Mathf.Clamp(boredom + 20, 0, 1000);
+            yield return new WaitForSeconds(Random.Range(1, 5));
+        }        
     }
 
     public Node.Status GoToArt(int index)
     {
         if (!_artarray[index].activeSelf) return Node.Status.FAILURE;
         Node.Status status = GoToLocation(_artarray[index].transform.position);
-        if (status == Node.Status.SUCCESS) borendom = Mathf.Clamp(borendom - 500, 0, 1000);
+        if (status == Node.Status.SUCCESS) boredom = Mathf.Clamp(boredom - 50, 0, 1000);
 
         return status;
     }
@@ -63,7 +81,7 @@ public class PatronBehaviour : BTAgent
 
     public Node.Status IsBored()
     {
-        if (borendom < 100)
+        if (boredom < 100)
             return Node.Status.FAILURE;
         else
             return Node.Status.SUCCESS;
