@@ -37,6 +37,14 @@ public class BTAgent : MonoBehaviour
         return Node.Status.FAILURE;
     }
 
+    public Node.Status IsOpen()
+    {
+        if (BlackBoard.Instance.GetTimeOfDay() < BlackBoard.Instance.openTime || BlackBoard.Instance.GetTimeOfDay() > BlackBoard.Instance.closeTime)
+            return Node.Status.FAILURE;
+        else
+            return Node.Status.SUCCESS;
+    }
+
     public Node.Status Flee(Vector3 location, float distance)
     {
         if (_state == ActionState.IDLE) _savedLocation = this.transform.position + (transform.position - location).normalized * distance;

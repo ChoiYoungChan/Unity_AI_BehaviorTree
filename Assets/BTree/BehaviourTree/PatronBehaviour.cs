@@ -13,6 +13,8 @@ public class PatronBehaviour : BTAgent
     [SerializeField]
     [Range(0, 1000)]
     private int boredom = 150;
+    public bool isTicket = false;
+    public bool isWaiting = false;
 
     public override void Start()
     {
@@ -28,23 +30,40 @@ public class PatronBehaviour : BTAgent
         Leaf gotofrontdoor = new Leaf("Go to Front Door", GoToFrontDoor);
         Leaf gotohome = new Leaf("Go to Home", GoToHome);
         Leaf isBored = new Leaf("Is Bored", IsBored);
+        Leaf isOpen = new Leaf("Is Open", IsOpen);
 
         Sequence viewArts = new Sequence("View Art");
-        Selector bePatron = new Selector("Be an art Patron");
 
         whileBored.AddChild(isBored);
         Loop loop = new Loop("Loop Node", whileBored);
         
         loop.AddChild(selectObject);
 
-        viewArts.AddChild(isBored);
+        viewArts.AddChild(isOpen);
         viewArts.AddChild(gotofrontdoor);
         viewArts.AddChild(loop);
         viewArts.AddChild(gotohome);
 
+        Leaf noTicket = new Leaf("Wait for Ticket", NoTicket);
+        Leaf isWaiting = new Leaf("Waiting for worker", IsWaiting);
+        BehaviourTree waitForTicket = new BehaviourTree();
+        waitForTicket.AddChild(noTicket);
+
+        Loop getTicket = new Loop("Ticket", waitForTicket);
+        getTicket.AddChild(isWaiting);
+        viewArts.AddChild(getTicket);
+
+        BehaviourTree galleryOpenCondition = new BehaviourTree();
+        galleryOpenCondition.AddChild(isOpen);
+
+        DepSequence bePatron = new DepSequence("Be an art Patron", galleryOpenCondition, _navAgent);
         bePatron.AddChild(viewArts);
 
-        _tree.AddChild(bePatron);
+        Selector viewArtWithFallback = new Selector("View Art with Fallback");
+        viewArtWithFallback.AddChild(bePatron);
+        viewArtWithFallback.AddChild(gotohome);
+
+        _tree.AddChild(viewArtWithFallback);
 
         StartCoroutine("IncreaseBoredom");
     }
@@ -76,6 +95,7 @@ public class PatronBehaviour : BTAgent
     public Node.Status GoToHome()
     {
         Node.Status status = GoToLocation(_home.transform.position);
+        isWaiting = false;
         return status;
     }
 
@@ -87,4 +107,19 @@ public class PatronBehaviour : BTAgent
             return Node.Status.SUCCESS;
     }
 
+    public Node.Status NoTicket()
+    {
+        if (isTicket || IsOpen() == Node.Status.FAILURE) return Node.Status.FAILURE;
+        else return Node.Status.SUCCESS;
+    }
+
+    public Node.Status IsWaiting()
+    {
+        if (BlackBoard.Instance.RegisterPatron(this.gameObject) == this.gameObject)
+        {
+            isWaiting = true;
+            return Node.Status.SUCCESS;
+        }
+        else return Node.Status.FAILURE;
+    }
 }

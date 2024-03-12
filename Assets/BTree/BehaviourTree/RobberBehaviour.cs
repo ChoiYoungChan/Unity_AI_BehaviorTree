@@ -82,11 +82,17 @@ public class RobberBehaviour : BTAgent
         steal.AddChild(seq03);
         steal.AddChild(seq04);*/
 
+        Leaf isOpen = new Leaf("Is Open", IsOpen);
+        Inverter isClosed = new Inverter("Is Closed");
+        isClosed.AddChild(isOpen);
+
         BehaviourTree stealConditions = new BehaviourTree();
         Sequence conditions = new Sequence("Stealing Conditions");
-        stealConditions.AddChild(cantseeCop);
-        stealConditions.AddChild(selectObject);
+        conditions.AddChild(isClosed);
+        conditions.AddChild(cantseeCop);
+        conditions.AddChild(invertMoney);
         stealConditions.AddChild(conditions);
+
         DepSequence steal = new DepSequence("Steal Something", stealConditions, _navAgent);
         steal.AddChild(invertMoney);
         steal.AddChild(opdnDoor);
@@ -239,11 +245,14 @@ public class RobberBehaviour : BTAgent
         Node.Status status = GoToLocation(_van.transform.position);
         if (status == Node.Status.SUCCESS)
         {
-            _money += 300;
-            _pickUp.SetActive(false);
+            if(_pickUp != null)
+            {
+                _money += 300;
+                _pickUp.SetActive(false);
+                _pickUp = null;
+            }
         }
         return status;
-        //return GoToLocation(_van.transform.position);
     }
 
     public Node.Status GoToLocation(Vector3 dest)
